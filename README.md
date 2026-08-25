@@ -8,7 +8,8 @@ The primary focus is on **stealth**, **EDR/AV evasion**, **process manipulation*
 [PlaceHolder]
 ## Process Injection & Execution
 Advanced techniques for executing arbitrary code within the context of another process.
-*   **Process Injection 1 & 2:** Classic and additional process injection snippets.
+*   **injection:** Base Primitives process injection snippets. ---
+*   **rdi_srdi:** [PlaceHolder] ---
 *   **Process Ghosting:** File-less execution leveraging NTFS transactional semantics.
 *   **Process Hypnosis:** Manipulating process memory structures for covert execution.
 *   **Process Herpaderping:** Modifying a binary on disk after the image is mapped.

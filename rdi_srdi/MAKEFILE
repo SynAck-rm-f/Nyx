@@ -1,0 +1,48 @@
+# Choix des compilateurs de la toolchain
+CXX      := x86_64-w64-mingw32-g++
+CXXFLAGS := -std=c++26 -fpermissive -Wall
+LDFLAGS  := -shared -static -luser32 -lkernel32
+
+# Détection dynamique du linker (équivalent du find_program de CMake)
+# MOLD_PATH va contenir le chemin vers 'mold' s'il existe dans le PATH, sinon chaîne vide
+MOLD_PATH := $(shell command -v mold 2> /dev/null)
+
+ifneq ($(MOLD_PATH),)
+    # mold est présent sur le système hôte, on l'injecte dans le linker
+    LDFLAGS += -fuse-ld=mold
+endif
+
+# Règle de compilation/linking
+main.dll: main.cpp
+	$(CXX) $(CXXFLAGS) main.cpp -o $@ $(LDFLAGS)
+
+clean:
+	rm -f main.dll
+# CC := x86_64-w64-mingw32-gcc
+# CFLAGS := -w -Os -c -shared -masm=intel -fno-toplevel-reorder -fno-jump-tables -mno-stack-arg-probe -ISource/includes
+
+# CC_64=x86_64-w64-mingw32-gcc
+# NASM=nasm
+# CFLAGS=-DWIN_X64 -shared -Wall -Wno-pointer-arith -mno-stack-arg-probe -fno-zero-initialized-in-bss -fasynchronous-unwind-tables -mabi=ms -foptimize-sibling-calls -falign-functions=1 -falign-jumps=1 -falign-loops=1
+
+# all: build/loader.x64.o build/hooks.x64.o build/pico.x64.o build/services.x64.o build/stomp.x64.o build/cfg.x64.o
+
+# build:
+# 	@mkdir -p build
+
+# build/loader.x64.o: build
+# 	@echo "  CC  build/pico.x64.o"
+# 	@$(CC_64) $(CFLAGS) -c src/pico.c -o build/pico.x64.o
+# 	@echo "  CC  build/loader.x64.o"
+# 	@$(CC_64) $(CFLAGS) -c src/loader.c -o build/loader.x64.o
+# 	@echo "  CC  build/stomp.x64.o"
+# 	@$(CC_64) $(CFLAGS) -c src/stomp.c -o build/stomp.x64.o
+# 	@echo "  CC  build/services.x64.o"
+# 	@$(CC_64) $(CFLAGS) -c src/services.c -o build/services.x64.o
+# 	@echo "  CC  build/hooks.x64.o"
+# 	@$(CC_64) $(CFLAGS) -c src/hooks.c -o build/hooks.x64.o
+# 	@echo "  CC  build/cfg.x64.o"
+# 	@$(CC_64) $(CFLAGS) -c src/cfg.c -o build/cfg.x64.o
+
+# clean:
+# 	@rm -f build/*.o build/*.bin output/*

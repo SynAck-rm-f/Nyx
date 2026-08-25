@@ -1,0 +1,202 @@
+# ==========================================
+# Artefacts de Compilation & Binaires (Brut)
+# ==========================================
+# Objets et archives
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+
+# Fichiers de build intermédiaires
+*.d
+*.pch
+*.gch
+*.idb
+*.pdb
+*.ilk
+*.exp
+
+# Exécutables
+*.exe
+# *.out
+# *.app
+
+# ==========================================
+# Build Out-of-source
+# ==========================================
+# CMake
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+ctest
+cpack
+
+# Dossiers génériques pour les builds out-of-source
+[Bb]uild/
+[Bb]in/
+[Ou]t/
+
+# Autotools / Make
+.deps/
+.libs/
+*.la
+*.lo
+# ==========================================
+# cli Ag
+# ==========================================
+.pi
+
+# ==========================================
+# Dép
+# ==========================================
+# Conan
+conaninfo.txt
+conanbuildinfo.txt
+conanprofile.txt
+conan/
+
+# Vcpkg
+vcpkg_installed/
+
+# ==========================================
+# (IDEs)
+# ==========================================
+# Visual Studio Code
+.vscode/
+# Note : Vous pouvez autoriser .vscode/launch.json et .vscode/tasks.json si partagés
+# !.vscode/launch.json
+# !.vscode/tasks.json
+
+# Visual Studio (MSVC)
+.vs/
+Debug/
+Release/
+x64/
+x86/
+ARM/
+ARM64/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# CLion / JetBrains
+.idea/
+cmake-build-*/
+
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+*.xcworkspace/
+
+# ==========================================
+# 
+# ==========================================
+.clang-tidy
+# (Optionnel : ne pas ignorer si vous imposez un style d'équipe)
+# !.clang-format
+
+# Caches des compilateurs (ccache, etc.)
+.ccache/
+
+# ==========================================
+# RUST
+# ==========================================
+**/target/
+**/*.rs.bk
+debug/
+*.rlib
+**/*.rs.tmp
+
+# ==========================================
+# PYTHON
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+ENV/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.pyo
+*.pyd
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ==========================================
+# TYPESCRIPT / NODE.JS
+# ==========================================
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+*.tsbuildinfo
+*.js.map
+*.d.ts.map
+.eslintcache
+.parcel-cache/
+.vite/
+coverage/
+*.tgz
+.yarn-integrity
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# ==========================================
+# ENVINTS & SEC
+# ==========================================
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+*.pem
+*.key
+secrets/
+config.local.toml
+
+# ==========================================
+# IDES & DRS
+# ==========================================
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# ==========================================
+# LOGS & F TMP
+# ==========================================
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.rej
