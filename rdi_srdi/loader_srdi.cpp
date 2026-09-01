@@ -243,9 +243,9 @@ extern "C" void entry() {
     }
   }
 
-  // =========================================================================
+  ////////////////////////////////////////////////////////////////////////////
   // 9. Flush instruction cache
-  // =========================================================================
+  ////////////////////////////////////////////////////////////////////////////
   void *p_nt_flush_instruction_cache =
       get_proc_address_by_hash(p_ntdll, NtFlushInstructionCache_CRC32b);
   NtFlushInstructionCache *g_nt_flush_instruction_cache =

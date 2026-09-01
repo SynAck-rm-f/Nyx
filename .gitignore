@@ -104,7 +104,7 @@ cmake-build-*/
 .clang-tidy
 # (Optionnel : ne pas ignorer si vous imposez un style d'équipe)
 # !.clang-format
-
+.cland
 # Caches des compilateurs (ccache, etc.)
 .ccache/
 
