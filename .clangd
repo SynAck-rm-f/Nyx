@@ -1,11 +1,11 @@
 CompileFlags:
   Add:
-    - --target=x86_64-w64-mingw32
-    - -isystem/usr/x86_64-w64-mingw32/include
-
-    - -Ih
-
-
-
-
-  Compiler: x86_64-w64-mingw32-g++
+    - -target
+    - x86_64-w64-windows-gnu
+    - -I${workspaceFolder}/inch
+    - -I/usr/x86_64-w64-mingw32/include
+    - -I/usr/x86_64-w64-mingw32/include/c++/16.2.0
+    - -I/usr/x86_64-w64-mingw32/include/c++/16.2.0/x86_64-w64-mingw32
+    - -D_WIN32
+    - -D_WIN64
+    - -D_MINGW32
