@@ -26,7 +26,9 @@ void LoggHex16(const char *label, WORD value) {
   OutputDebugStringA(buf);
   ConsoleWrite(buf, len);
 }
- // TODO Fix output
+//////////////////////////////////////////////////////////////////////////////
+// 1. Output formatting helpers
+//////////////////////////////////////////////////////////////////////////////
 // void LoggDelta(const char *label, LONG_PTR delta) {
 //   char buf[256];
 //   int len = wsprintfA(buf, "[DELTA ] %-19s = 0x%016llX (%lld)\n", label,
@@ -60,7 +62,9 @@ void LoggPointer(const char *label, LONG_PTR delta) {
   OutputDebugStringA(buf);
   ConsoleWrite(buf, len);
 }
-////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+// 2. Human-readable logging helpers
+//////////////////////////////////////////////////////////////////////////////
 void LoggInfo(const char *msg) {
   char buf[512];
   int len = wsprintfA(buf, "[INFO  ]  %s\n", msg);

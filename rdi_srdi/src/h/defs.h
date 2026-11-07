@@ -1,6 +1,8 @@
 #include "structs.h"
 
-
+//////////////////////////////////////////////////////////////////////////////
+// 1. Process termination helper
+//////////////////////////////////////////////////////////////////////////////
 #define EXIT(code) do { \
     void *_p_ntdll_exit = get_ntdll(); \
     typedef NTSTATUS (*NtTerminateProcess_t)(HANDLE, NTSTATUS); \
@@ -14,7 +16,9 @@
 #define NtCurrentProcess() ((HANDLE)(LONG_PTR) - 1)
 #define RTL_CONSTANT_STRING(s) {sizeof(s) - sizeof((s)[0]), sizeof(s), s}
 
-
+//////////////////////////////////////////////////////////////////////////////
+// 2. Object attribute flags
+//////////////////////////////////////////////////////////////////////////////
 #define OBJ_INHERIT 0x00000002L
 #define OBJ_PERMANENT 0x00000010L
 #define OBJ_EXCLUSIVE 0x00000020L
@@ -43,6 +47,9 @@
   string.Buffer = buffer
 
 
+//////////////////////////////////////////////////////////////////////////////
+// 3. NTAPI typedefs
+//////////////////////////////////////////////////////////////////////////////
 typedef BOOL(__stdcall *DLLEntry)(HINSTANCE dll, unsigned long reason,
                                   void *reserved);
 typedef const UNICODE_STRING *PCUNICODE_STRING;

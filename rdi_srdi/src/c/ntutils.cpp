@@ -15,9 +15,13 @@ void LoggInfo(const char *msg) {
 }
 
 
-// ========== FORMATAGE CUSTOM (no-WinAPI) ==========
+//////////////////////////////////////////////////////////////////////////////
+// 1. Custom formatting helpers
+//////////////////////////////////////////////////////////////////////////////
 
-// Convertit un DWORD en hex string (8 digits)
+//////////////////////////////////////////////////////////////////////////////
+// 2. Convert a DWORD to hexadecimal text
+//////////////////////////////////////////////////////////////////////////////
 static int DwordToHex(char *buf, DWORD value) {
     const char *hex = "0123456789ABCDEF";
     for (int i = 7; i >= 0; i--) {
@@ -27,7 +31,9 @@ static int DwordToHex(char *buf, DWORD value) {
     return 8;
 }
 
-// Convertit un QWORD en hex string (16 digits)
+//////////////////////////////////////////////////////////////////////////////
+// 3. Convert a QWORD to hexadecimal text
+//////////////////////////////////////////////////////////////////////////////
 static int QwordToHex(char *buf, unsigned long long value) {
     const char *hex = "0123456789ABCDEF";
     for (int i = 15; i >= 0; i--) {
@@ -37,7 +43,9 @@ static int QwordToHex(char *buf, unsigned long long value) {
     return 16;
 }
 
-// Convertit un DWORD en decimal string
+//////////////////////////////////////////////////////////////////////////////
+// 4. Convert a DWORD to decimal text
+//////////////////////////////////////////////////////////////////////////////
 static int DwordToDec(char *buf, DWORD value) {
     if (value == 0) {
         buf[0] = '0';
@@ -55,7 +63,9 @@ static int DwordToDec(char *buf, DWORD value) {
     return i;
 }
 
-// ========== ÉCRITURE NATIVE VIA SYSCALL ==========
+//////////////////////////////////////////////////////////////////////////////
+// 5. Native write path via NTAPI
+//////////////////////////////////////////////////////////////////////////////
 
 void ConsoleWriteNative(const char *buf, int len) {
     IO_STATUS_BLOCK ioStatus;
@@ -73,7 +83,9 @@ void ConsoleWriteNative(const char *buf, int len) {
                     (PVOID)buf, (ULONG)len, NULL, NULL);
 }
 
-// ========== FONCTIONS DE LOG ==========
+//////////////////////////////////////////////////////////////////////////////
+// 6. Logging helpers
+//////////////////////////////////////////////////////////////////////////////
 
 void LoggInfoNative(const char *msg) {
     char buf[512];

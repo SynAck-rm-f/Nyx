@@ -4,7 +4,7 @@
 
 #include "process_enum.h"
 
-int list_processes(const wchar_t *p_process_name)
+int ListProcesses(const wchar_t *p_process_name)
 {
     HANDLE h_process_snapshot;
     PROCESSENTRY32W process_entry;

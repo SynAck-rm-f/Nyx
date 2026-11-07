@@ -32,7 +32,7 @@ x86_64-w64-mingw32-g++ remote_arg_cmd.cpp -o remote_injection.exe -luser32 -lker
 
 #### Process-name injector
 ```bash
-x86_64-w64-mingw32-g++ -I../inch ../inch/process_enum.cpp remote_list_prcss_togg.c -o remote_list_process.exe -luser32 -lkernel32 -static
+x86_64-w64-mingw32-g++ -I../inch process_enum.cpp remote_list_prcss_togg.c -o remote_list_process.exe -luser32 -lkernel32 -static
 ```
 
 ## Workspace Extraction & Clean Checkout
