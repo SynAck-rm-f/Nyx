@@ -3,7 +3,7 @@
 DWORD WINAPI main_thread(LPVOID lp_param)
 {
     (void)lp_param;
-    MessageBoxW(NULL, L"Jesus Loves You!", L"=^..^=", MB_OK);
+    MessageBoxW(NULL, L"Loves You!", L"=^..^=", MB_OK);
     return 0;
 }
 

@@ -1,6 +1,7 @@
 # shellcode_asm
 ```
-Linux x86_64 assembly payload lab focused on turning PIC-friendly NASM into raw opcodes through objdump/objcopy extraction.
+Intro Shellcode & Pipeline toolschain
+https://synack-rm-f.github.io/post/2026-07-10-intro-shellcode--pipeline-toolschain/
 ```
 ## Overview
 
@@ -8,12 +9,6 @@ Linux x86_64 assembly payload lab focused on turning PIC-friendly NASM into raw 
 - **Architecture:** x86_64
 - **Language:** Assembly
 - **Type:** Shellcode / PIC Payload Lab
-
-## Key Capabilities & OpSec
-
-- **Evasion Features:** Position-independent code, relocation avoidance, raw opcode extraction
-- **Execution Model:** Assembly -> ELF object -> raw binary shellcode
-- **Dependencies:** NASM, binutils
 
 ## Compilation & Usage
 
