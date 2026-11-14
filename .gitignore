@@ -1,7 +1,6 @@
 # ==========================================
-# Artefacts de Compilation & Binaires (Brut)
+# Artefacts Compil
 # ==========================================
-# Objets et archives
 *.o
 *.obj
 *.a
@@ -69,12 +68,9 @@ vcpkg_installed/
 # ==========================================
 # (IDEs)
 # ==========================================
-# Visual Studio Code
 .vscode/
-# Note : Vous pouvez autoriser .vscode/launch.json et .vscode/tasks.json si partagés
 # !.vscode/launch.json
 # !.vscode/tasks.json
-
 # Visual Studio (MSVC)
 .vs/
 Debug/
@@ -88,28 +84,16 @@ ARM64/
 *.userosscache
 *.sln.docstates
 
-# CLion / JetBrains
-.idea/
-cmake-build-*/
-
-# Xcode
-*.xcodeproj/*
-!*.xcodeproj/project.pbxproj
-!*.xcodeproj/xcshareddata/
-*.xcworkspace/
-
 # ==========================================
-# 
+# ClangD
 # ==========================================
 .clang-tidy
-# (Optionnel)
-# !.clang-format
+.clang-format
 .cland
-# Caches des compilateurs (ccache, ///////)
 .ccache/
 
 # ==========================================
-# RUST
+# Rust
 # ==========================================
 **/target/
 **/*.rs.bk
@@ -118,7 +102,7 @@ debug/
 **/*.rs.tmp
 
 # ==========================================
-# PYTHON
+# Python
 # ==========================================
 __pycache__/
 *.py[cod]

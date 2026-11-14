@@ -1,8 +1,7 @@
 # shellcode_asm
-```
-Intro Shellcode & Pipeline toolschain
+Understanding payload execution at the binary level requires stripping away high-level abstractions and observing how the CPU processes raw machine code. Whether generating payloads via Metasploit (msfvenom) or compiling custom position-independent shellcode (PIC), the underlying compilation pipeline follows a deterministic path from assembly source code down to raw opcodes... ... ...
+
 https://synack-rm-f.github.io/post/2026-07-10-intro-shellcode--pipeline-toolschain/
-```
 ## Overview
 
 - **Target OS:** Linux x64

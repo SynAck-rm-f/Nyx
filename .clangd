@@ -1,14 +1,14 @@
 CompileFlags:
+  Compiler: /usr/bin/x86_64-w64-mingw32-gcc   # --query-driver yessssssss
   Add:
     - -target
     - x86_64-w64-windows-gnu
-    - -Iinch
-    - -isystem/usr/x86_64-w64-mingw32/include
     - -D_WIN32
     - -D_WIN64
 
 Diagnostics:
-  UnusedIncludes: Strict # Désactive les fausses alertes d'includes inutilisés comme windows.h
+  UnusedIncludes: Strict
   Suppress:
-    - pp_file_not_found_angled_include_not_fatal
     - unused-includes
+    - int-conversion
+    - format
